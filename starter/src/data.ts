@@ -1,6 +1,6 @@
 import type { ClinicalTrial } from "./types.js";
 
-export const trials: ClinicalTrial[] = [
+const rawTrials: ClinicalTrial[] = [
   {
     id: "NCT-001",
     name: "AURORA-1: Pocenbrodib in mCRPC",
@@ -154,3 +154,8 @@ export const trials: ClinicalTrial[] = [
     ],
   },
 ];
+
+export const trials: ClinicalTrial[] = rawTrials.map((trial) => {
+  Object.freeze(trial.keyFindings);
+  return Object.freeze(trial);
+});

@@ -51,6 +51,7 @@ export function listTrials(filters: TrialFilters): {
 
   if (filters.search) {
     const query = filters.search.toLowerCase();
+    const scores = new Map<string, number>();
     results = results.filter((t) => {
       let score = 0;
       if (t.name.toLowerCase().includes(query)) score += 3;
@@ -58,7 +59,7 @@ export function listTrials(filters: TrialFilters): {
       if (t.primaryEndpoint.toLowerCase().includes(query)) score += 1;
       if (t.keyFindings.some((f) => f.toLowerCase().includes(query)))
         score += 2;
-      (t as any)._score = score;
+      scores.set(t.id, score);
       return score > 0;
     });
   }
