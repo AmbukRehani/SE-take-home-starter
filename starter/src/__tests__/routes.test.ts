@@ -109,7 +109,10 @@ describe("POST /trials/:id/analyze streaming", () => {
       capturedSignal = options.abortSignal;
       return {
         stream: simulateReadableStream({
-          chunks: [{ type: "text-delta" as const, textDelta: "chunk one" }],
+          chunks: [
+            { type: "text-delta" as const, textDelta: "chunk one" },
+            { type: "text-delta" as const, textDelta: "chunk two" },
+          ],
           initialDelayInMs: 20,
           chunkDelayInMs: 2000,
         }),
@@ -119,16 +122,20 @@ describe("POST /trials/:id/analyze streaming", () => {
     mockModel.current = new MockLanguageModelV1({ doStream });
 
     const controller = new AbortController();
-    const fetchPromise = fetch(`${baseUrl}/trials/NCT-001/analyze`, {
+    const res = await fetch(`${baseUrl}/trials/NCT-001/analyze`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ focus: "safety" }),
       signal: controller.signal,
-    }).catch(() => undefined);
+    });
 
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Read the first chunk so the client actually opens the stream before
+    // disconnecting; aborting before any bytes are read may not tear down
+    // the underlying socket.
+    const reader = res.body!.getReader();
+    await reader.read();
     controller.abort();
-    await fetchPromise;
+    await reader.cancel().catch(() => undefined);
 
     await vi.waitFor(() => {
       expect(capturedSignal?.aborted).toBe(true);
