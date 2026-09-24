@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import type { Server } from "node:http";
-import { MockLanguageModelV1 } from "ai/test";
+import { MockLanguageModelV1, simulateReadableStream } from "ai/test";
 import { app } from "../app.js";
 
 // vi.mock is hoisted above imports and consts, so shared state must use
@@ -81,5 +81,57 @@ describe("POST /trials/:id/analyze focus validation", () => {
 
     expect(res.status).toBe(400);
     expect(doStream).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /trials/:id/analyze streaming", () => {
+  it("emits an SSE error event and never sends [DONE] when the model errors", async () => {
+    mockModel.current = new MockLanguageModelV1({
+      doStream: async () => {
+        throw new Error("mock upstream 429");
+      },
+    });
+
+    const res = await fetch(`${baseUrl}/trials/NCT-001/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ focus: "safety" }),
+    });
+
+    const text = await res.text();
+    expect(text).toContain("event: error");
+    expect(text).not.toContain("[DONE]");
+  });
+
+  it("aborts the upstream call when the client disconnects", async () => {
+    let capturedSignal: AbortSignal | undefined;
+    const doStream = vi.fn(async (options: { abortSignal?: AbortSignal }) => {
+      capturedSignal = options.abortSignal;
+      return {
+        stream: simulateReadableStream({
+          chunks: [{ type: "text-delta" as const, textDelta: "chunk one" }],
+          initialDelayInMs: 20,
+          chunkDelayInMs: 2000,
+        }),
+        rawCall: { rawPrompt: null, rawSettings: {} },
+      };
+    });
+    mockModel.current = new MockLanguageModelV1({ doStream });
+
+    const controller = new AbortController();
+    const fetchPromise = fetch(`${baseUrl}/trials/NCT-001/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ focus: "safety" }),
+      signal: controller.signal,
+    }).catch(() => undefined);
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    controller.abort();
+    await fetchPromise;
+
+    await vi.waitFor(() => {
+      expect(capturedSignal?.aborted).toBe(true);
+    });
   });
 });
