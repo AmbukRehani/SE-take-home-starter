@@ -62,6 +62,20 @@ describe("trial-service", () => {
       expect(upper.trials.map((t) => t.id)).toContain("NCT-002");
     });
 
+    it("does not leak internal search scores onto shared trial objects", () => {
+      listTrials({ search: "prostate" });
+      const trial = getTrialById("NCT-001");
+      expect(trial).not.toHaveProperty("_score");
+      expect(JSON.stringify(trial)).not.toContain("_score");
+    });
+
+    it("does not allow mutating a cached trial object", () => {
+      const trial = getTrialById("NCT-001")!;
+      expect(() => {
+        (trial as unknown as Record<string, unknown>)["_score"] = 1;
+      }).toThrow(TypeError);
+    });
+
     it("sorts by enrollment ascending", () => {
       const result = listTrials({ sort: "enrollment", order: "asc" });
       const enrollments = result.trials.map((t) => t.enrollment);
