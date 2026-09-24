@@ -36,4 +36,16 @@ describe("analysis-service", () => {
       expect(beacon3.riskScore).toBeLessThan(radiant4.riskScore);
     });
   });
+
+  describe("getTrialSummary", () => {
+    it("does not throw for a trial with a null response rate", () => {
+      const trial = getTrialById("NCT-003")!;
+      expect(trial.responseRate).toBeNull();
+      expect(() => getTrialSummary(trial)).not.toThrow();
+
+      const summary = getTrialSummary(trial);
+      expect(summary.summary).toContain("not yet available");
+      expect(summary.summary).not.toContain("0.0%");
+    });
+  });
 });
