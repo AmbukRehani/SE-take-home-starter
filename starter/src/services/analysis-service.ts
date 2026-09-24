@@ -103,7 +103,10 @@ function calculateRiskScore(trial: ClinicalTrial): number {
   // Phase I = higher uncertainty
   if (trial.phase === "I") score += 1;
 
-  if (trial.responseRate !== null && trial.responseRate > 30) {
+  // Lower response rate = higher risk; a null response rate (Phase I,
+  // not yet available) is left neutral since phase uncertainty is
+  // already scored above.
+  if (trial.responseRate !== null && trial.responseRate < 30) {
     score += 2;
   }
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { getTrialSummary } from "../services/analysis-service.js";
+import { getTrialById } from "../services/trial-service.js";
 import type { ClinicalTrial } from "../types.js";
 
 function makeTrial(overrides: Partial<ClinicalTrial>): ClinicalTrial {
@@ -27,6 +28,12 @@ describe("analysis-service", () => {
       const highResponse = getTrialSummary(makeTrial({ responseRate: 60 }));
       const lowResponse = getTrialSummary(makeTrial({ responseRate: 10 }));
       expect(lowResponse.riskScore).toBeGreaterThan(highResponse.riskScore);
+    });
+
+    it("scores RADIANT-4 (2% response) riskier than BEACON-3 (61.3% response)", () => {
+      const beacon3 = getTrialSummary(getTrialById("NCT-002")!);
+      const radiant4 = getTrialSummary(getTrialById("NCT-005")!);
+      expect(beacon3.riskScore).toBeLessThan(radiant4.riskScore);
     });
   });
 });
