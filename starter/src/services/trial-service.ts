@@ -56,7 +56,8 @@ export function listTrials(filters: TrialFilters): {
       if (t.name.toLowerCase().includes(query)) score += 3;
       if (t.indication.toLowerCase().includes(query)) score += 2;
       if (t.primaryEndpoint.toLowerCase().includes(query)) score += 1;
-      if (t.keyFindings.includes(query)) score += 2;
+      if (t.keyFindings.some((f) => f.toLowerCase().includes(query)))
+        score += 2;
       (t as any)._score = score;
       return score > 0;
     });
