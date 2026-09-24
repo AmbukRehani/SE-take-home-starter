@@ -45,7 +45,8 @@ export async function streamAnalysis(
     writeHead: (status: number, headers: Record<string, string>) => void;
     write: (chunk: string) => boolean;
     end: () => void;
-  }
+  },
+  abortSignal?: AbortSignal
 ): Promise<void> {
   const prompt = buildPrompt(trial, focus);
 
@@ -58,16 +59,25 @@ export async function streamAnalysis(
   const result = streamText({
     model: openai("gpt-4o-mini"),
     prompt,
+    ...(abortSignal !== undefined && { abortSignal }),
   });
 
-  const reader = result.textStream;
-
-  for await (const chunk of reader) {
-    response.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
+  try {
+    for await (const part of result.fullStream) {
+      if (part.type === "text-delta") {
+        response.write(`data: ${JSON.stringify({ text: part.textDelta })}\n\n`);
+      } else if (part.type === "error") {
+        console.error("Analysis stream error:", part.error);
+        response.write(
+          `event: error\ndata: ${JSON.stringify({ error: "Analysis failed" })}\n\n`
+        );
+        return;
+      }
+    }
+    response.write("data: [DONE]\n\n");
+  } finally {
+    response.end();
   }
-
-  response.write("data: [DONE]\n\n");
-  response.end();
 }
 
 export function getTrialSummary(trial: ClinicalTrial): {

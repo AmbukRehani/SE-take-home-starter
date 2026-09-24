@@ -94,8 +94,15 @@ router.post(
       return;
     }
 
+    const controller = new AbortController();
+    res.on("close", () => {
+      if (!res.writableFinished) {
+        controller.abort();
+      }
+    });
+
     try {
-      await streamAnalysis(trial, parsed.data.focus, res);
+      await streamAnalysis(trial, parsed.data.focus, res, controller.signal);
     } catch (err) {
       if (!res.headersSent) {
         res.status(500).json({
