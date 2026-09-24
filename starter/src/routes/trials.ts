@@ -68,10 +68,14 @@ router.get("/:id/summary", (req: Request, res: Response) => {
   res.json(summary);
 });
 
+const analyzeBodySchema = z.object({
+  focus: z.enum(["safety", "efficacy", "competitive"]),
+});
+
 router.post(
   "/:id/analyze",
   async (
-    req: Request<{ id: string }, unknown, { focus: string }>,
+    req: Request<{ id: string }, unknown, unknown>,
     res: Response<ErrorResponse>
   ) => {
     const trial = getTrialById(req.params.id);
@@ -80,10 +84,18 @@ router.post(
       return;
     }
 
-    const { focus } = req.body;
+    const parsed = analyzeBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        error: parsed.error.issues
+          .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+          .join("; "),
+      });
+      return;
+    }
 
     try {
-      await streamAnalysis(trial, focus as any, res);
+      await streamAnalysis(trial, parsed.data.focus, res);
     } catch (err) {
       if (!res.headersSent) {
         res.status(500).json({
