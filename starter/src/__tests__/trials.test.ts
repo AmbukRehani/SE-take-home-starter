@@ -46,6 +46,14 @@ describe("trial-service", () => {
       }
     });
 
+    it("sorts by startDate ascending when order=asc is requested", () => {
+      const result = listTrials({ sort: "startDate", order: "asc" });
+      const dates = result.trials.map((t) => new Date(t.startDate).getTime());
+      for (let i = 1; i < dates.length; i++) {
+        expect(dates[i]! >= dates[i - 1]!).toBe(true);
+      }
+    });
+
     it("sorts by enrollment ascending", () => {
       const result = listTrials({ sort: "enrollment", order: "asc" });
       const enrollments = result.trials.map((t) => t.enrollment);
