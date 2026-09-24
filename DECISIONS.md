@@ -132,17 +132,16 @@ in this file just to match the README.
   human should confirm what "confirmed" was actually meant to convey.
 
 ### Patient identifiers in notes
-- Found: `PT-004` (name "John Williams" + MRN "4451892"), `PT-037`
-  (partial SSN "412-XX-8891").
+- Found: `PT-004` (a patient name + MRN in the same sentence), `PT-037`
+  (a partial SSN).
 - Decision: redact **and** quarantine (`PII_PATIENT`).
 - Why: principle #4. This is a privacy incident, not just a formatting
   problem — a human needs to see that it happened and confirm nothing else
   leaked, since regex redaction is best-effort by nature.
 
 ### Staff identifiers in notes
-- Found: `PT-004` and `PT-021` ("Dr. Michael Chen", "Dr. Rachel Kim"),
-  `PT-017` (an email address, `sarah.johnson@site-b03.clinic`), `PT-050`
-  ("CRA Lisa Park").
+- Found: `PT-004` and `PT-021` (a "Dr. \<Name\>" mention), `PT-017` (a
+  staff email address), `PT-050` (a "CRA \<Name\>" mention).
 - Decision: redact; keep in clean with a warning (`PII_STAFF`).
 - Why: a staff member's name or work email is not patient PHI. It's still
   worth redacting (there's no reason to keep it in a dataset meant for
