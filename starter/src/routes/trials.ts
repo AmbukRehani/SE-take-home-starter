@@ -1,5 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
+import { z } from "zod";
 import { listTrials, getTrialById } from "../services/trial-service.js";
 import {
   streamAnalysis,
@@ -9,22 +10,43 @@ import type { TrialListResponse, ErrorResponse } from "../types.js";
 
 const router = Router();
 
-router.get("/", (req: Request, res: Response<TrialListResponse>) => {
-  const { phase, status, minEnrollment, sponsor, search, sort, order } =
-    req.query;
-
-  const result = listTrials({
-    phase: phase as string | undefined,
-    status: status as string | undefined,
-    minEnrollment: minEnrollment ? Number(minEnrollment) : undefined,
-    sponsor: sponsor as string | undefined,
-    search: search as string | undefined,
-    sort: sort as string | undefined,
-    order: order as string | undefined,
-  });
-
-  res.json(result);
+const listQuerySchema = z.object({
+  phase: z.enum(["I", "II", "III"]).optional(),
+  status: z.enum(["recruiting", "completed", "terminated"]).optional(),
+  minEnrollment: z.coerce.number().int().nonnegative().optional(),
+  sponsor: z.string().trim().min(1).max(200).optional(),
+  search: z.string().trim().min(1).max(200).optional(),
+  sort: z.enum(["startDate", "enrollment", "adverseEventRate"]).optional(),
+  order: z.enum(["asc", "desc"]).optional(),
 });
+
+router.get(
+  "/",
+  (req: Request, res: Response<TrialListResponse | ErrorResponse>) => {
+    const parsed = listQuerySchema.safeParse(req.query);
+    if (!parsed.success) {
+      res.status(400).json({
+        error: parsed.error.issues
+          .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+          .join("; "),
+      });
+      return;
+    }
+    const q = parsed.data;
+
+    const result = listTrials({
+      ...(q.phase !== undefined && { phase: q.phase }),
+      ...(q.status !== undefined && { status: q.status }),
+      ...(q.minEnrollment !== undefined && { minEnrollment: q.minEnrollment }),
+      ...(q.sponsor !== undefined && { sponsor: q.sponsor }),
+      ...(q.search !== undefined && { search: q.search }),
+      ...(q.sort !== undefined && { sort: q.sort }),
+      ...(q.order !== undefined && { order: q.order }),
+    });
+
+    res.json(result);
+  }
+);
 
 router.get("/:id", (req: Request, res: Response) => {
   const trial = getTrialById(req.params.id!);

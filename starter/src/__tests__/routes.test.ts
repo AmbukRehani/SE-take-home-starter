@@ -24,7 +24,7 @@ describe("GET /trials/:id/summary", () => {
   it("returns 200 JSON for a trial with a null response rate", async () => {
     const res = await fetch(`${baseUrl}/trials/NCT-003/summary`);
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as { summary: string };
     expect(body.summary).toContain("not yet available");
   });
 });
@@ -53,7 +53,7 @@ describe("GET /trials query validation", () => {
   it("treats minEnrollment=0 as a real filter, not a skipped one", async () => {
     const res = await fetch(`${baseUrl}/trials?minEnrollment=0`);
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = (await res.json()) as { total: number };
     expect(body.total).toBe(8);
   });
 });

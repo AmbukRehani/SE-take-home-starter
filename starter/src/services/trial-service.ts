@@ -39,7 +39,7 @@ export function listTrials(filters: TrialFilters): {
     results = results.filter((t) => t.status === filters.status);
   }
 
-  if (filters.minEnrollment) {
+  if (filters.minEnrollment !== undefined) {
     results = results.filter((t) => t.enrollment >= filters.minEnrollment!);
   }
 
