@@ -54,6 +54,14 @@ describe("trial-service", () => {
       }
     });
 
+    it("matches search terms found only in key findings", () => {
+      const lower = listTrials({ search: "photosensitivity" });
+      expect(lower.trials.map((t) => t.id)).toContain("NCT-002");
+
+      const upper = listTrials({ search: "PHOTOSENSITIVITY" });
+      expect(upper.trials.map((t) => t.id)).toContain("NCT-002");
+    });
+
     it("sorts by enrollment ascending", () => {
       const result = listTrials({ sort: "enrollment", order: "asc" });
       const enrollments = result.trials.map((t) => t.enrollment);
