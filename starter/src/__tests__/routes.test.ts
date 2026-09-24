@@ -28,3 +28,32 @@ describe("GET /trials/:id/summary", () => {
     expect(body.summary).toContain("not yet available");
   });
 });
+
+describe("GET /trials query validation", () => {
+  it("rejects a search param nested as an object", async () => {
+    const res = await fetch(`${baseUrl}/trials?search[a]=b`);
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects a repeated query param that becomes an array", async () => {
+    const res = await fetch(`${baseUrl}/trials?phase=I&phase=II`);
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects a non-numeric minEnrollment", async () => {
+    const res = await fetch(`${baseUrl}/trials?minEnrollment=abc`);
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects an unknown sort field", async () => {
+    const res = await fetch(`${baseUrl}/trials?sort=bogus`);
+    expect(res.status).toBe(400);
+  });
+
+  it("treats minEnrollment=0 as a real filter, not a skipped one", async () => {
+    const res = await fetch(`${baseUrl}/trials?minEnrollment=0`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.total).toBe(8);
+  });
+});
