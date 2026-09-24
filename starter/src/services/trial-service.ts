@@ -73,7 +73,7 @@ export function listTrials(filters: TrialFilters): {
         break;
       case "startDate":
         cmp =
-          new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+          new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
         break;
       case "adverseEventRate":
         cmp = a.adverseEventRate - b.adverseEventRate;
